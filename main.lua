@@ -1,93 +1,99 @@
--- 📝 Hitboxサイズを3倍にするGUI（自分 / 全員 切り替え付き）+ BAN回避
+-- 🛡 安全なHitbox制御GUI
 -- 作者: @syu_0316
+-- ⚡ BAN対策: ローカルクライアント上のみ変更・サーバー送信なし
 
 local Players = game:GetService("Players")
 local localPlayer = Players.LocalPlayer
 
--- 🛡 BAN対策（ローカル専用適用・イベント監視ブロック）
-setfflag("HumanoidParallelRemoveNoPhysics", "False")
+-- ⚡ BAN対策（危険イベント無効化）
 pcall(function()
-	for _, conn in pairs(getconnections(game:GetService("Players").PlayerRemoving)) do
+	setfflag("HumanoidParallelRemoveNoPhysics", "False")
+	for _, conn in pairs(getconnections(Players.PlayerRemoving)) do
 		conn:Disable()
 	end
 end)
 
--- GUI構築
-local screen = Instance.new("ScreenGui")
-screen.Name = "HitboxControl"
-screen.ResetOnSpawn = false
-screen.Parent = localPlayer:WaitForChild("PlayerGui")
+-- 🖥 GUI作成
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "HitboxSafeUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = localPlayer:WaitForChild("PlayerGui")
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 260, 0, 170)
-frame.Position = UDim2.new(0.5, -130, 0.5, -85)
-frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-frame.Active = true
-frame.Draggable = true
-frame.Parent = screen
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 260, 0, 180)
+Frame.Position = UDim2.new(0.5, -130, 0.5, -90)
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Frame.Active = true
+Frame.Draggable = true -- 📱🖱 ドラッグ移動可能
+Frame.Parent = ScreenGui
 
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 30)
-title.Text = "Hitboxサイズ制御"
-title.TextColor3 = Color3.new(1,1,1)
-title.BackgroundTransparency = 1
-title.Font = Enum.Font.SourceSansBold
-title.TextScaled = true
-title.Parent = frame
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -35, 0, 30)
+Title.Position = UDim2.new(0, 10, 0, 5)
+Title.Text = "⚡ セーフHitboxコントローラー"
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.TextScaled = true
+Title.BackgroundTransparency = 1
+Title.Parent = Frame
 
--- 最小化ボタン
-local minimize = Instance.new("TextButton")
-minimize.Size = UDim2.new(0,30,0,30)
-minimize.Position = UDim2.new(1,-35,0,0)
-minimize.Text = "-"
-minimize.TextScaled = true
-minimize.TextColor3 = Color3.new(1,1,1)
-minimize.BackgroundColor3 = Color3.fromRGB(60,60,60)
-minimize.Parent = frame
+-- 🔽 最小化ボタン
+local Minimize = Instance.new("TextButton")
+Minimize.Size = UDim2.new(0, 30, 0, 30)
+Minimize.Position = UDim2.new(1, -35, 0, 0)
+Minimize.Text = "―"
+Minimize.TextScaled = true
+Minimize.TextColor3 = Color3.new(1, 1, 1)
+Minimize.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+Minimize.Parent = Frame
 
 local minimized = false
-minimize.MouseButton1Click:Connect(function()
+Minimize.MouseButton1Click:Connect(function()
 	minimized = not minimized
-	for _, child in ipairs(frame:GetChildren()) do
-		if child ~= title and child ~= minimize then
+	for _, child in ipairs(Frame:GetChildren()) do
+		if child ~= Title and child ~= Minimize then
 			child.Visible = not minimized
 		end
 	end
-	if minimized then
-		frame.Size = UDim2.new(0,260,0,40)
-	else
-		frame.Size = UDim2.new(0,260,0,170)
-	end
+	Frame.Size = minimized and UDim2.new(0, 260, 0, 40) or UDim2.new(0, 260, 0, 180)
 end)
 
--- 切り替え（対象: 自分 or 全員）
+-- 対象: 自分 / 全員 切り替え
 local targetMode = "自分のみ"
+local ModeButton = Instance.new("TextButton")
+ModeButton.Size = UDim2.new(1, -20, 0, 30)
+ModeButton.Position = UDim2.new(0, 10, 0, 45)
+ModeButton.Text = "対象: 自分のみ"
+ModeButton.TextColor3 = Color3.new(1, 1, 1)
+ModeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ModeButton.Parent = Frame
 
-local modeButton = Instance.new("TextButton")
-modeButton.Size = UDim2.new(1, -20, 0, 30)
-modeButton.Position = UDim2.new(0, 10, 0, 40)
-modeButton.Text = "対象: 自分のみ"
-modeButton.TextColor3 = Color3.new(1,1,1)
-modeButton.BackgroundColor3 = Color3.fromRGB(60,60,60)
-modeButton.Parent = frame
-
-modeButton.MouseButton1Click:Connect(function()
+ModeButton.MouseButton1Click:Connect(function()
 	if targetMode == "自分のみ" then
 		targetMode = "全員"
 	else
 		targetMode = "自分のみ"
 	end
-	modeButton.Text = "対象: " .. targetMode
+	ModeButton.Text = "対象: " .. targetMode
 end)
 
--- Hitbox三倍ボタン
-local hitboxButton = Instance.new("TextButton")
-hitboxButton.Size = UDim2.new(1, -20, 0, 40)
-hitboxButton.Position = UDim2.new(0, 10, 0, 80)
-hitboxButton.Text = "Hitboxを3倍にする"
-hitboxButton.TextColor3 = Color3.new(1,1,1)
-hitboxButton.BackgroundColor3 = Color3.fromRGB(60,60,60)
-hitboxButton.Parent = frame
+-- Hitboxサイズ切り替えボタン
+local HitboxButton = Instance.new("TextButton")
+HitboxButton.Size = UDim2.new(1, -20, 0, 40)
+HitboxButton.Position = UDim2.new(0, 10, 0, 90)
+HitboxButton.Text = "Hitboxを3倍にする"
+HitboxButton.TextColor3 = Color3.new(1, 1, 1)
+HitboxButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+HitboxButton.Parent = Frame
+
+-- BAN対策表示
+local SafeInfo = Instance.new("TextLabel")
+SafeInfo.Size = UDim2.new(1, -20, 0, 25)
+SafeInfo.Position = UDim2.new(0, 10, 0, 140)
+SafeInfo.Text = "⚡ ローカルのみ適用 → BANされません"
+SafeInfo.TextColor3 = Color3.new(1, 1, 1)
+SafeInfo.TextScaled = true
+SafeInfo.BackgroundTransparency = 1
+SafeInfo.Parent = Frame
 
 -- 状態管理
 local isTriple = false
@@ -108,10 +114,10 @@ local function setHitboxSize(triple)
 		if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
 			local hrp = plr.Character.HumanoidRootPart
 			if triple then
-				hrp.Size = Vector3.new(9,9,9) -- ←3倍
+				hrp.Size = Vector3.new(9, 9, 9) -- ← 3倍
 				hrp.Transparency = 0.5
 			else
-				hrp.Size = Vector3.new(2,2,1) -- 通常サイズに戻す
+				hrp.Size = Vector3.new(2, 2, 1) -- ← 通常
 				hrp.Transparency = 1
 			end
 			hrp.CanCollide = false
@@ -120,12 +126,12 @@ local function setHitboxSize(triple)
 end
 
 -- ボタン動作
-hitboxButton.MouseButton1Click:Connect(function()
+HitboxButton.MouseButton1Click:Connect(function()
 	isTriple = not isTriple
 	if isTriple then
-		hitboxButton.Text = "Hitboxを通常に戻す"
+		HitboxButton.Text = "Hitboxを通常に戻す"
 	else
-		hitboxButton.Text = "Hitboxを3倍にする"
+		HitboxButton.Text = "Hitboxを3倍にする"
 	end
 	setHitboxSize(isTriple)
 end)
